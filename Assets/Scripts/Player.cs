@@ -35,6 +35,9 @@ public class Player : MonoBehaviour {
         if (collision.gameObject.name == "Goal" && !GameManager.Instance.GameEnded) {
             GameManager.Instance.UpdateScore();
         }
+        else if (collision.gameObject.name == "Coin") {
+            GameManager.Instance.UpdateScore();
+        }
         else {
             GameManager.Instance.EndGame();
         }

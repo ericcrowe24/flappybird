@@ -43,15 +43,14 @@ public class PipeSpawner : MonoBehaviour {
             inst.transform.Translate(new Vector3(0, pipeStartHeight, 0));
         }
         else {
-            float min = lastPipeHeight - 1;
-            float max = lastPipeHeight + 1;
+            float min = lastPipeHeight - 2;
+            float max = lastPipeHeight + 2;
             float height = Random.Range(min < pipeMinHeight ? pipeMinHeight : min, max > pipeMaxHeight ? pipeMaxHeight : max);
-            Debug.Log(height);
             lastPipeHeight = height;
             inst.transform.Translate(new Vector3(0, height, 0));
-            Debug.Log(GameManager.Instance.Score % 10);
+
             if (GameManager.Instance.Score % 10 == 0 && pipeSpawnDelay >= 10f / 60f) {
-                pipeSpawnDelay *= 0.9f;
+                pipeSpawnDelay *= 0.85f;
             }
 
             inst.GetComponent<Rigidbody2D>().velocity = new Vector2(speed, 0);
