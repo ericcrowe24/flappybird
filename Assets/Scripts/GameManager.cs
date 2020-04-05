@@ -1,67 +1,86 @@
 ﻿using System.Collections;
+using System;
 using System.Collections.Generic;
+using System.Xml.Serialization;
+using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Flappy.Utility;
+using Flappy.Scores;
 
-public class GameManager : MonoBehaviour {
-    private static object lockObj = new object();
-    private static GameManager instance;
+namespace Flappy {
+    public class GameManager : Singleton<GameManager> {
+        public GameState State;
+        public int Score = 0;
+        public bool PlayerOnScreen = true;
 
-    public bool GameStarted = false;
-    public bool GameEnded = false;
-    public int Score = 0;
+        public ScoreList scoreList { get; private set; } = new ScoreList();
 
-    private GameManager() { }
+        private const string scoreListFileName = "scores.xml";
 
-    public static GameManager Instance {
-        get {
-            lock (lockObj) {
-                if (instance == null) {
-                    instance = (GameManager) FindObjectOfType(typeof(GameManager));
+        private GameManager() { }
 
-                    if (instance == null) {
-                        var singletonObject = new GameObject();
-                        instance = singletonObject.AddComponent<GameManager>();
-                        singletonObject.name = nameof(GameManager);
-                        DontDestroyOnLoad(singletonObject);
-                    }
-                }
+        private void Start() {
+            DontDestroyOnLoad(this);
+            State = GameState.Waiting;
+            SceneManager.LoadScene("Main");
+            LoadScores();
+        }
 
-                return instance;
+        private void Update() {
+            if (Input.GetKeyDown(KeyCode.Escape)) {
+                ExitGame();
             }
+        }
+
+        private void LoadScores() {
+            try {
+                scoreList = ScoreList.Load(GetScoreListPath());
+            }
+            catch (FileNotFoundException) {
+                Debug.Log("Score List not found, creating " + scoreListFileName);
+                scoreList.Save(GetScoreListPath());
+                scoreList = ScoreList.Load(GetScoreListPath());
+            }
+        }
+
+        private string GetScoreListPath() {
+            return Path.Combine(Application.persistentDataPath, scoreListFileName);
+        }
+
+        public void StartGame() {
+            State = GameState.Started;
+        }
+
+        public void UpdateScore(int score) {
+            if (State == GameState.Started)
+                Score += score;
+        }
+
+        public void EndGame() {
+            scoreList.AddScore(Score);
+            scoreList.Save(GetScoreListPath());
+            State = GameState.Ended;
+        }
+
+        public void PlayerOffScreen() {
+            PlayerOnScreen = false;
+        }
+
+        public void RestartGame() {
+            State = GameState.Restarting;
+            PlayerOnScreen = true;
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            Score = 0;
+            State = GameState.Restarted;
+        }
+
+        public void ExitGame() {
+            Application.Quit();
         }
     }
 
-    // Start is called before the first frame update
-    void Start() {
-    }
-
-    // Update is called once per frame
-    void Update() {
-
-    }
-
-    public void StartGame() {
-        GameStarted = true;
-    }
-
-    public void UpdateScore() {
-        Score += 1;
-    }
-
-    public void EndGame() {
-        GameEnded = true;
-        GameStarted = false;
-        PipeSpawner.GameEnded = true;
-        Pipe.GameEnded = true;
-    }
-
-    public void RestartGame() {
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-        Score = 0;
-        GameStarted = false;
-        GameEnded = false;
-        PipeSpawner.GameEnded = false;
-        Pipe.GameEnded = false;
+    public enum GameState {
+        Waiting, Started, Ended, Restarting, Restarted
     }
 }
